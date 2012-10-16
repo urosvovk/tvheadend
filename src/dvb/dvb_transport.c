@@ -1,6 +1,6 @@
 /*
  *  TV Input - Linux DVB interface
- *  Copyright (C) 2007 Andreas Öman
+ *  Copyright (C) 2007 Andreas ï¿½man
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -43,6 +43,7 @@
 #include "psi.h"
 #include "dvb_support.h"
 #include "notify.h"
+#include "dvb_ca_handle.h"
 
 /**
  *
@@ -143,7 +144,13 @@ dvb_transport_start(service_t *t, unsigned int weight, int force_start)
     dvb_transport_open_demuxers(tda, t);
 
   dvb_table_add_pmt(t->s_dvb_mux_instance, t->s_pmt_pid);
-
+  
+  if(!r)
+  {
+    /*[urosv] configure DVB CA device to start descrambling*/
+    start_transport_descrambling(t);
+    /* TODO Better way: perhaps we should wait for a request from CAM: conditional access handle - like it is done in dvblast: after AOT_CA_INFO request from CAM*/
+  }
   return r;
 }
 
@@ -156,6 +163,9 @@ dvb_transport_stop(service_t *t)
 {
   th_dvb_adapter_t *tda = t->s_dvb_mux_instance->tdmi_adapter;
   elementary_stream_t *st;
+
+  /*[urosv] configure DVB CA device to stop descrambling*/
+  stop_transport_descrambling(t);
 
   lock_assert(&global_lock);
 
