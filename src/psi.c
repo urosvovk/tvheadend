@@ -223,9 +223,10 @@ psi_build_pat(service_t *t, uint8_t *buf, int maxlen, int pmtpid)
 
 /**
  * Add a CA descriptor
+ * [urosv] p_rawdescrinnerdata buffer and its rawdescrinnerlen field contain the descriptor without the first two bytes (tag and len)
  */
 static int
-psi_desc_add_ca(service_t *t, uint16_t caid, uint32_t provid, uint16_t pid)
+psi_desc_add_ca(service_t *t, uint16_t caid, uint32_t provid, uint16_t pid, const uint8_t *p_rawdescrinnerdata, uint8_t rawdescrinnerlen)
 {
   elementary_stream_t *st;
   caid_t *c;
@@ -241,8 +242,21 @@ psi_desc_add_ca(service_t *t, uint16_t caid, uint32_t provid, uint16_t pid)
   st->es_position = 0x40000;
 
   LIST_FOREACH(c, &st->es_caids, link) {
-    if(c->caid == caid) {
+	if(c->caid == caid && c->delete_me == 1) { /*[urosv]: Added condition(delete_me) that only old not yet processed caids (the ones still marked for deletion) are processed
+	  												This enables to have two or more descriptors with the same caid in the caids list. Needed for descrambling of irdeto card - orf1 channel: has duplicate CA descriptors.*/
       c->delete_me = 0;
+
+      /*[urosv] Save the whole raw descriptor for later */
+      /* Descriptor tag and len bytes are not included in the p_rawdescrinnerdata buffer. Hence +-2 in the code below*/
+      if (rawdescrinnerlen > MAX_RAW_DESCR_DATA-2) {
+        tvhlog(LOG_ERR,"PSI","CA descriptor cut off. Size too big: %d\n", rawdescrinnerlen+2);
+        rawdescrinnerlen = MAX_RAW_DESCR_DATA-2;
+      }
+      c->raw_descr_data[0] = DVB_DESC_CA;
+      c->raw_descr_data[1] = rawdescrinnerlen;
+      memcpy(c->raw_descr_data+2, p_rawdescrinnerdata, rawdescrinnerlen);
+      c->raw_descr_len = rawdescrinnerlen+2;
+      /*[urosv] end*/
 
       if(c->providerid != provid) {
 	c->providerid = provid;
@@ -257,6 +271,18 @@ psi_desc_add_ca(service_t *t, uint16_t caid, uint32_t provid, uint16_t pid)
   c->caid = caid;
   c->providerid = provid;
   
+  /*[urosv] Save the whole raw descriptor for later */
+  /* descriptor tag and len bytes are not included in the p_rawdescrinnerdata buffer. Hence +-2 in the code below*/
+  if (rawdescrinnerlen > MAX_RAW_DESCR_DATA-2) {
+    tvhlog(LOG_ERR,"PSI","CA descriptor cut off. Size too big: %d\n", rawdescrinnerlen+2);
+    rawdescrinnerlen = MAX_RAW_DESCR_DATA-2;
+  }
+  c->raw_descr_data[0] = DVB_DESC_CA;
+  c->raw_descr_data[1] = rawdescrinnerlen;
+  memcpy(c->raw_descr_data+2, p_rawdescrinnerdata, rawdescrinnerlen);
+  c->raw_descr_len = rawdescrinnerlen+2;
+  /*[urosv] end*/
+
   c->delete_me = 0;
   LIST_INSERT_HEAD(&st->es_caids, c, link);
   r |= PMT_UPDATE_NEW_CAID;
@@ -291,7 +317,7 @@ psi_desc_ca(service_t *t, const uint8_t *buffer, int size)
       uint16_t xpid = ((buffer[i]&0x1F) << 8) | buffer[i + 1];
       uint16_t xprovid = (buffer[i + 2] << 8) | buffer[i + 3];
 
-      r |= psi_desc_add_ca(t, caid, xprovid, xpid);
+      r |= psi_desc_add_ca(t, caid, xprovid, xpid, buffer, size);
     }
     break;
   case 0x0500:// Viaccess
@@ -314,12 +340,19 @@ psi_desc_ca(service_t *t, const uint8_t *buffer, int size)
       provid = 0;
     }
     break;
+  case 0x0600:
+    provid = 0;
+    /* [urosv] Currently provider id changes are not handled. TODO implement irdeto providerid parsing from descriptor:
+    { "Irdeto",           0x0600 },
+    { "Irdeto",           0x0602 },
+    { "Irdeto",           0x0604 }, */
+    break;
   default:
     provid = 0;
     break;
   }
 
-  r |= psi_desc_add_ca(t, caid, provid, pid);
+  r |= psi_desc_add_ca(t, caid, provid, pid, buffer, size);
 
   return r;
 }

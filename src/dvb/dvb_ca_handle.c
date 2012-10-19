@@ -35,6 +35,93 @@ const char *psz_provider_name = NULL;
 static iconv_t iconv_handle = (iconv_t)-1;
 #endif
 
+/**
+ * For debuging purposes only
+ */
+static void urosvprintPMT( uint8_t *p_pmt )
+{
+	/*function just for debugging purposes*/
+
+	if (p_pmt == NULL)
+	{
+		printf("urosv print PMT FAILED, NULL!\n");
+		return;
+	}
+	/* Is this TS_program_map_section? */
+	if (p_pmt[0] != 0x02)
+	{
+		printf("urosv print PMT FAILED, not TS_program_map_section type!!!\n");
+		return;
+	}
+	/* Get len */
+	unsigned int pmtlen = p_pmt[1] & 0x0f;
+	pmtlen = (pmtlen<<8) + p_pmt[2];
+
+	unsigned int program_info_length = p_pmt[10] & 0x0f;
+	program_info_length = (program_info_length<<8) + p_pmt[11];
+
+
+	printf("urosv print PMT. pmtlen: %x, program_info_length: %x\n", pmtlen, program_info_length);
+	int i=0;
+	while (i < pmtlen+3-4)
+	{
+		if (i==12)
+		{
+			printf("\nDescriptors:");
+			while (i < program_info_length + 12)
+			{
+				printf("\n Tag:%2x, len:%2x \n", p_pmt[i], p_pmt[i+1]);
+				int pasttheenddescIndex = i + 2 + p_pmt[i+1];
+				while ( i < pasttheenddescIndex)
+				{
+					printf("%2x ", p_pmt[i]);
+					i++;
+				}
+				i = pasttheenddescIndex;
+			}
+		}
+
+		if (i == program_info_length + 12)
+		{
+			printf("\nStreamTypes:");
+			while (i < pmtlen+3-4)
+			{
+				int ES_info_length = (p_pmt[i+3] & 0x0f);
+				ES_info_length = (ES_info_length<<8) + p_pmt[i+4];
+
+				printf("\n Streamtype:%2x, pidhi:%2x, pidlo:%2x, ES_info_length:%3x \n", p_pmt[i], p_pmt[i+1], p_pmt[i+2],ES_info_length);
+				/*Print nested descriptors*/
+				i = i + 5;
+				int pasttheendstreamtypeIndex = i + ES_info_length;
+				while (i < pasttheendstreamtypeIndex)
+				{
+					printf("\n  Tag:%2x, len:%2x \n", p_pmt[i], p_pmt[i+1]);
+					int pasttheenddescIndex = i + 2 + p_pmt[i+1];
+					while ( i < pasttheenddescIndex)
+					{
+						printf("%2x ", p_pmt[i]);
+						i++;
+					}
+				}
+			}
+		}
+
+		printf("%2X ", p_pmt[i]);
+		i++;
+	}
+	printf("\n");
+	//
+	i=0;
+	printf("\nRAW buffer : \n");
+	while (i < pmtlen+3-4)
+	{
+		printf("%2X ", p_pmt[i]);
+		if ( i%20 == 19) { printf("\n");}
+		//
+		i++;
+	}
+}
+
 
 /**
  * PMTNeedsDescrambling: taken from DVBLAST 2.0. demux.c source code TODO Is this reference enough?
@@ -47,15 +134,19 @@ static bool PMTNeedsDescrambling( uint8_t *p_pmt )
     const uint8_t *p_desc;
 
     j = 0;
+    printf("\nurosv itag = ");
     while ( (p_desc = descs_get_desc( pmt_get_descs( p_pmt ), j )) != NULL )
     {
         uint8_t i_tag = desc_get_tag( p_desc );
         j++;
 
+        printf("%d, ", i_tag);
         if ( i_tag == 0x9 ) return true;
     }
+    printf("itag end\n");
 
     i = 0;
+    printf("urosv itag2 = ");
     while ( (p_es = pmt_get_es( p_pmt, i )) != NULL )
     {
         i++;
@@ -64,11 +155,11 @@ static bool PMTNeedsDescrambling( uint8_t *p_pmt )
         {
             uint8_t i_tag = desc_get_tag( p_desc );
             j++;
-
+            printf("%d, ", i_tag);
             if ( i_tag == 0x9 ) return true;
         }
     }
-
+    printf("itag2 end returning false\n\n");
     return false;
 }
 
@@ -153,8 +244,8 @@ void dvb_adapter_ca_init(void *aux)
 {
   printf("uros dvb_adapter_ca_init start....\n");
   th_dvb_adapter_t *tda = aux;
-	pthread_t ptid;
-	pthread_create(&ptid, NULL, dvb_ca_control, tda);
+  pthread_t ptid;
+  pthread_create(&ptid, NULL, dvb_ca_control, tda);
 }
 
 
@@ -383,6 +474,8 @@ bool start_transport_descrambling(struct service *s)
   uint8_t p_pmt[MAX_PMTCMD_BUF_SIZE];
   memset(p_pmt, 0xff, MAX_PMTCMD_BUF_SIZE);
   psi_build_pmt_fordescrambling(s, p_pmt, MAX_PMTCMD_BUF_SIZE);
+
+  urosvprintPMT(p_pmt); /*[urosv] debug only: TODO remove this*/
 
   if (PMTNeedsDescrambling(p_pmt) )
   {
