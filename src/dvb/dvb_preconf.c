@@ -60,24 +60,13 @@ dvb_mux_preconf_add(th_dvb_adapter_t *tda, const network_t *net,
       break;
       
     case FE_QPSK:
-      #if DVB_API_VERSION >= 5
-      /*[uros added support for dvbs2 parameters]*/
-      switch (m->constellation) {
-      case 'Q': // QPSK
-        dmc.dmc_fe_modulation = QPSK; /*frontend.h: fe_modulation_t*/
-        break;
-      case 'P': // PSK_8
-        dmc.dmc_fe_modulation = PSK_8; /*frontend.h: fe_modulation_t*/
-        break;
-      }
-      switch (m-> delsys) {
-      case 'S': // SYS_DVBS
-        dmc.dmc_fe_delsys = SYS_DVBS; /*frontend.h: fe_delivery_system_t*/
-        break;
-      case '2': // SYS_DVBS2
-        dmc.dmc_fe_delsys = SYS_DVBS2; /*frontend.h: fe_delivery_system_t*/
-        break;
-      }
+#if DVB_API_VERSION >= 5
+      /*[urosv] constellation needs to be set here too, otherwise they all get saved later as QPSK */
+      dmc.dmc_fe_modulation = m->constellation;
+
+      /*[urosv] added support for distinguishing DVB-S and DVB-S2 */
+      dmc.dmc_fe_delsys                    = m->delsys;
+
 #endif
       dmc.dmc_fe_params.u.qpsk.symbol_rate = m->symrate;
       dmc.dmc_fe_params.u.qpsk.fec_inner   = m->fec;

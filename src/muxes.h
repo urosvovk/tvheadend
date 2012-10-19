@@ -25,7 +25,7 @@ typedef struct mux {
  unsigned int symrate;
  short fec;
  short constellation;
- char delsys; /*  [urosv]: Delivery System : added for dvb-s2 support */
+ short delsys; /*[urosv] added support for distinguishing DVB-S and DVB-S2 */
  short bw;
  short fechp;
  short feclp;
