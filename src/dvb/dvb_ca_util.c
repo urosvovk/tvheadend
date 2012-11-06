@@ -1,5 +1,5 @@
 /*****************************************************************************
- * util.c
+ * dvb_ca_util.c
  *****************************************************************************
  * Copyright (C) 2004 VideoLAN
  *
@@ -36,18 +36,22 @@
 #include <errno.h>
 #include <syslog.h>
 
+#include "dvb_ca_util.h"
 #include "../libbitstream/mpeg/psi.h"
-#include "util.h"
+#include "../tvheadend.h"	/*Just needed for tvhlog(.) function*/
+
 
 /*****************************************************************************
  * Local declarations
  *****************************************************************************/
 #define MAX_MSG 1024
-#define VERB_DBG  4
-#define VERB_INFO 3
-#define VERB_WARN 2
-#define VERB_ERR 1
 
+int i_adapter = 0;
+mtime_t i_wallclock = 0;
+
+print_type_t i_print_type = -1;
+int i_syslog = 0;
+int i_verbose = DEFAULT_VERBOSITY;
 
 /*****************************************************************************
  * msg_Info
@@ -56,15 +60,13 @@ void msg_Info( void *_unused, const char *psz_format, ... )
 {
     if ( i_verbose >= VERB_INFO )
     {
+        char buf[MAX_MSG];
         va_list args;
-        char psz_fmt[MAX_MSG];
         va_start( args, psz_format );
+        vsnprintf(buf, sizeof(buf), psz_format, args);
+        va_end(args);
 
-        snprintf( psz_fmt, MAX_MSG, "info: %s\n", psz_format );
-        if ( i_syslog )
-            vsyslog( LOG_INFO, psz_fmt, args );
-        else
-            vfprintf( stderr, psz_fmt, args );
+        tvhlog(LOG_INFO, "dvb", "%s", buf);
     }
 }
 
@@ -75,15 +77,13 @@ void msg_Err( void *_unused, const char *psz_format, ... )
 {
     if ( i_verbose >= VERB_ERR )
     {
+        char buf[MAX_MSG];
         va_list args;
-        char psz_fmt[MAX_MSG];
         va_start( args, psz_format );
+        vsnprintf(buf, sizeof(buf), psz_format, args);
+        va_end(args);
 
-        snprintf( psz_fmt, MAX_MSG, "error: %s\n", psz_format );
-        if ( i_syslog )
-            vsyslog( LOG_ERR, psz_fmt, args );
-        else
-            vfprintf( stderr, psz_fmt, args );
+        tvhlog(LOG_ERR, "dvb", "%s", buf);
     }
 }
 
@@ -94,15 +94,13 @@ void msg_Warn( void *_unused, const char *psz_format, ... )
 {
     if ( i_verbose >= VERB_WARN )
     {
-        va_list args;
-        char psz_fmt[MAX_MSG];
-        va_start( args, psz_format );
+    	char buf[MAX_MSG];
+		va_list args;
+		va_start( args, psz_format );
+		vsnprintf(buf, sizeof(buf), psz_format, args);
+		va_end(args);
 
-        snprintf( psz_fmt, MAX_MSG, "warning: %s\n", psz_format );
-        if ( i_syslog )
-            vsyslog( LOG_WARNING, psz_fmt, args );
-        else
-            vfprintf( stderr, psz_fmt, args );
+		tvhlog(LOG_WARNING, "dvb", "%s", buf);
     }
 }
 
@@ -113,15 +111,13 @@ void msg_Dbg( void *_unused, const char *psz_format, ... )
 {
     if ( i_verbose >= VERB_DBG )
     {
-        va_list args;
-        char psz_fmt[MAX_MSG];
-        va_start( args, psz_format );
+    	char buf[MAX_MSG];
+    	va_list args;
+    	va_start( args, psz_format );
+    	vsnprintf(buf, sizeof(buf), psz_format, args);
+    	va_end(args);
 
-        snprintf( psz_fmt, MAX_MSG, "debug: %s\n", psz_format );
-        if ( i_syslog )
-            vsyslog( LOG_DEBUG, psz_fmt, args );
-        else
-            vfprintf( stderr, psz_fmt, args );
+    	tvhlog(LOG_DEBUG, "dvb", "%s", buf);
     }
 }
 
@@ -130,15 +126,13 @@ void msg_Dbg( void *_unused, const char *psz_format, ... )
  *****************************************************************************/
 void msg_Raw( void *_unused, const char *psz_format, ... )
 {
-    va_list args;
-    char psz_fmt[MAX_MSG];
-    va_start( args, psz_format );
+	char buf[MAX_MSG];
+   	va_list args;
+   	va_start( args, psz_format );
+   	vsnprintf(buf, sizeof(buf), psz_format, args);
+   	va_end(args);
 
-    snprintf( psz_fmt, MAX_MSG, "%s\n", psz_format );
-    if ( i_syslog )
-        vsyslog( LOG_NOTICE, psz_fmt, args );
-    else
-        vfprintf( stderr, psz_fmt, args );
+   	tvhlog(LOG_NOTICE, "dvb", "%s", buf);
 }
 
 /*****************************************************************************

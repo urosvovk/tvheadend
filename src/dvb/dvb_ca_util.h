@@ -1,12 +1,13 @@
 /*
- * util.h
+ * dvb_ca_util.h
  *
  *  Created on: Jan 18, 2012
  *      Author: urosv
  *      TODO: This code is taken from dvblast.h source file of the DVBLAST ver 2.0 project.
  */
 
-#ifndef UTIL_H_
+#ifndef DVB_CA_UTIL_H_
+#define DVB_CA_UTIL_H_
 
 #include <netdb.h>
 #include <sys/socket.h>
@@ -17,7 +18,12 @@
 
 
 #define MAX_PIDS 8192
+
 #define DEFAULT_VERBOSITY 4
+#define VERB_DBG  4
+#define VERB_INFO 3
+#define VERB_WARN 2
+#define VERB_ERR 1
 
 typedef int64_t mtime_t;
 
@@ -35,8 +41,6 @@ typedef struct ts_pid_info {
        3 = Scrambled with odd key */
 } ts_pid_info_t;
 
-extern int i_syslog;
-extern int i_verbose;
 extern int i_adapter;
 extern mtime_t i_wallclock;
 extern enum print_type_t i_print_type;
@@ -51,8 +55,4 @@ __attribute__ ((format(printf, 2, 3))) void msg_Raw( void *_unused, const char *
 
 mtime_t mdate( void );
 
-
-#define UTIL_H_
-
-
-#endif /* UTIL_H_ */
+#endif /* DVB_CA_UTIL_H_ */

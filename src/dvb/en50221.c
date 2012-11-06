@@ -50,7 +50,7 @@
 #include "../libbitstream/dvb/ci.h"
 #include "../libbitstream/dvb/si.h"
 
-#include "util.h"
+#include "dvb_ca_util.h"
 #include "dvb_ca_handle.h"
 #include "en50221.h"
 #include "comm.h"
@@ -71,7 +71,7 @@
  * Local declarations
  *****************************************************************************/
 #undef DEBUG_TPDU
-//#define DEBUG_TPDU //uros
+#define DEBUG_TPDU
 #define CAM_INIT_TIMEOUT 15000000 /* 15 s */
 #undef HLCI_WAIT_CAM_READY
 #define CAPMT_WAIT 100 /* ms */
@@ -1236,15 +1236,6 @@ static void CAPMTFirst( access_t * p_access, int i_session_id, uint8_t *p_pmt )
     msg_Dbg( p_access, "adding first CAPMT for SID %d on session %d",
              pmt_get_program( p_pmt ), i_session_id );
 
-
-    if (0) // [urosv] debug TODO delete
-    {
-      printf("CAPMTFirst raw printout: \n");
-      int i ;
-      for (i = 0; i < 180; i++) printf("0x%x, ", p_pmt[i]);
-      printf("END of CAPMTFirst raw printout.\n");
-    }
-
     p_capmt = CAPMTBuild( p_access, i_session_id, p_pmt,
                           0x3 /* only */, 0x1 /* ok_descrambling */,
                           &i_capmt_size );
@@ -2144,10 +2135,8 @@ void en50221_Poll( void )
         {
             if ( p_slot->b_active )
             {
-//                msg_Dbg( NULL, "en50221_Poll: slot %d has been removed",
-//                         i_slot );
-              printf("en50221_Poll: slot %d has been removed",
-                       i_slot ); // uros todo change this back
+                msg_Dbg( NULL, "en50221_Poll: slot %d has been removed",
+                         i_slot );
 
                 ResetSlot( i_slot );
             }

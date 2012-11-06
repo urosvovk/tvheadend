@@ -1,6 +1,6 @@
 /*
  *  Bit stream reader
- *  Copyright (C) 2007 Andreas Öman
+ *  Copyright (C) 2007 Andreas ï¿½man
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -77,7 +77,16 @@ read_golomb_ue(bitstream_t *bs)
   int b, lzb = -1;
 
   for(b = 0; !b; lzb++)
+  {
     b = read_bits1(bs);
+    /*[urosv] Added end condition to terminate for loop if bitstream_t structure is corrupted
+     * this is just an indication, the tvh crash usually follows*/
+    if (lzb > 10000 || lzb > bs->len)
+ 	{
+    	printf("Read_golomb_ue endless loop detected and skipped - bitstream_t corrupted(offset:%d >= len:%d)\n", bs->offset, bs->len);
+    	break;
+   	}
+  }
 
   return (1 << lzb) - 1 + read_bits(bs, lzb);
 }

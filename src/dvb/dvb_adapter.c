@@ -615,19 +615,11 @@ dvb_adapter_mux_scanner(void *aux)
   if(service_compute_weight(&tda->tda_transports) > 0)
     return;
 
-    // uros todo remove this
-    int initialscanquesize = 0;
-    TAILQ_FOREACH(tdmi, &tda->tda_initial_scan_queue, tdmi_scan_link) {
-      initialscanquesize++;
-    }
-    printf("uros: dvb_adapter_mux_scanner: initial scan que size: %d\n",initialscanquesize);
-    // end uros remove this    
-    
   /* Check if we have muxes pending for quickscan, if so, choose them */
   if((tdmi = TAILQ_FIRST(&tda->tda_initial_scan_queue)) != NULL) {
     if (dvb_fe_tune(tdmi, "Initial autoscan") == SM_CODE_TUNING_FAILED) {
       /*[urosv] Initial scan speedup: go to next mux  ASAP if this one failed to tune*/
-      printf("uros Initial scan speedup: go to next mux  ASAP if this one failed to tune\n");
+      tvhlog(LOG_INFO, "dvb", "Initial scan speedup: go to next mux  ASAP if this one failed to tune\n");
       gtimer_arm(&tda->tda_mux_scanner_timer, dvb_adapter_mux_scanner, tda, 1);
     }
     return;

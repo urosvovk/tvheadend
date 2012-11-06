@@ -147,9 +147,8 @@ dvb_transport_start(service_t *t, unsigned int weight, int force_start)
   
   if(!r)
   {
-    /*[urosv] configure DVB CA device to start descrambling*/
+    /*[urosv] configure DVB CA device to start descrambling this service*/
     start_transport_descrambling(t);
-    /* TODO Better way: perhaps we should wait for a request from CAM: conditional access handle - like it is done in dvblast: after AOT_CA_INFO request from CAM*/
   }
   return r;
 }
@@ -164,7 +163,7 @@ dvb_transport_stop(service_t *t)
   th_dvb_adapter_t *tda = t->s_dvb_mux_instance->tdmi_adapter;
   elementary_stream_t *st;
 
-  /*[urosv] configure DVB CA device to stop descrambling*/
+  /*[urosv] configure DVB CA device to stop descrambling this service*/
   stop_transport_descrambling(t);
 
   lock_assert(&global_lock);

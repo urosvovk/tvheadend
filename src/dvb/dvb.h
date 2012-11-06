@@ -1,6 +1,6 @@
 /*
  *  TV Input - Linux DVB interface
- *  Copyright (C) 2007 Andreas Öman
+ *  Copyright (C) 2007 Andreas ï¿½man
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -229,7 +229,7 @@ typedef struct th_dvb_adapter {
 
   uint32_t tda_extrapriority; // extra priority for choosing the best adapter/service
 
-  pthread_mutex_t adapter_access_ca; // [urosv]: multithreaded access CA + FE is a problem for DVB device tbs qbox devices
+  pthread_mutex_t adapter_access_ca; /* [urosv]: multithreaded access CA + FE is a problem for DVB device tbs qbox devices*/
 
 } th_dvb_adapter_t;
 

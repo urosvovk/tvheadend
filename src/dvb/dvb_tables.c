@@ -1264,6 +1264,7 @@ dvb_table_flush_all(th_dvb_mux_instance_t *tdmi)
 
 /**
  * TODO [urosv] This function is copied from src/psi.c, which is not very nice.
+ * Alternative would be to export it in psi.c
  */
 static int
 psi_append_crc32(uint8_t *buf, int offset, int maxlen)
@@ -1298,7 +1299,7 @@ psi_build_pmt_fordescrambling(struct service *s, uint8_t *p_pmt, int maxlen)
 
 	tvhlog(LOG_DEBUG,"dvb","psi_build_pmt_fordescrambling started...\n");
 
-	//psi_section *psi = t->tht_pmt_section; /*[urosv] TODO: Could be useful in the future. The whole PMT is saved in here.*/
+	/*psi_section *psi = t->tht_pmt_section;*/ /*[urosv] TODO: Could be useful in the future. The whole PMT is saved in here.*/
 
   int c, tlen, dlen, l;
 
@@ -1402,7 +1403,7 @@ psi_build_pmt_fordescrambling(struct service *s, uint8_t *p_pmt, int maxlen)
     	c = 0x06; /* TODO [urosv] This is needed to exactly match the OFR1 and ORF2 elementary stream descriptors. It also works without it, so we leave it commented*/
       break;
 
-    case SCT_TELETEXT: /*[urosv]: teletekst elementary stream should also be added for DVBX descrambling CAPMT command. Just the header is enough, no need for incapsulated descriptor*/
+    case SCT_TELETEXT:
       c = 0x06;
       break;
 

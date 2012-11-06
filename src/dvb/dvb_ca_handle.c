@@ -8,10 +8,10 @@
 #include <sys/poll.h>
 
 #include "dvb_ca_handle.h"
-#include "src/service.h"
-#include "util.h"
+#include "dvb_ca_util.h"
 #include "en50221.h"
 #include "dvb.h"
+#include "src/service.h"
 #include "src/libbitstream/mpeg/psi.h"
 
 #ifdef HAVE_ICONV
@@ -19,38 +19,39 @@
 #endif
 
 
-//////////////////////////////////////////////////////////////////////////////////
+/*****************************************************************************
+ * Local declarations
+ *****************************************************************************/
 static mtime_t i_ca_next_event = 0;
-int i_adapter = 0;
-mtime_t i_wallclock = 0;
-
-print_type_t i_print_type = -1;
-int i_syslog = 0;
-int i_verbose = 4;
 
 const char *psz_native_charset = "UTF-8";
 const char *psz_dvb_charset = "ISO_8859-1";
 const char *psz_provider_name = NULL;
+
 #ifdef HAVE_ICONV
 static iconv_t iconv_handle = (iconv_t)-1;
 #endif
 
+/*****************************************************************************
+ * Functions
+ *****************************************************************************/
+#ifdef PRINTPMT
 /**
- * For debuging purposes only
+ * For debugging purposes only: define PRINTPMT to enable this functionality
  */
-static void urosvprintPMT( uint8_t *p_pmt )
+static void printPMT( uint8_t *p_pmt )
 {
 	/*function just for debugging purposes*/
 
 	if (p_pmt == NULL)
 	{
-		printf("urosv print PMT FAILED, NULL!\n");
+		printf("printPMT: FAILED, NULL!\n");
 		return;
 	}
 	/* Is this TS_program_map_section? */
 	if (p_pmt[0] != 0x02)
 	{
-		printf("urosv print PMT FAILED, not TS_program_map_section type!!!\n");
+		printf("printPMT: FAILED, not a TS_program_map_section type\n");
 		return;
 	}
 	/* Get len */
@@ -61,7 +62,7 @@ static void urosvprintPMT( uint8_t *p_pmt )
 	program_info_length = (program_info_length<<8) + p_pmt[11];
 
 
-	printf("urosv print PMT. pmtlen: %x, program_info_length: %x\n", pmtlen, program_info_length);
+	printf("printPMT: pmtlen: %x, program_info_length: %x\n", pmtlen, program_info_length);
 	int i=0;
 	while (i < pmtlen+3-4)
 	{
@@ -110,8 +111,8 @@ static void urosvprintPMT( uint8_t *p_pmt )
 		i++;
 	}
 	printf("\n");
-	//
-	i=0;
+
+	/*i=0;
 	printf("\nRAW buffer : \n");
 	while (i < pmtlen+3-4)
 	{
@@ -119,12 +120,14 @@ static void urosvprintPMT( uint8_t *p_pmt )
 		if ( i%20 == 19) { printf("\n");}
 		//
 		i++;
-	}
+	}*/
 }
-
+#endif
 
 /**
- * PMTNeedsDescrambling: taken from DVBLAST 2.0. demux.c source code TODO Is this reference enough?
+ * PMTNeedsDescrambling
+ * check PMT for presence of any CA descriptors - signify that descrambling is needed
+ * The function is taken from DVBLAST 2.0. demux.c source code
  */
 static bool PMTNeedsDescrambling( uint8_t *p_pmt )
 {
@@ -134,19 +137,15 @@ static bool PMTNeedsDescrambling( uint8_t *p_pmt )
     const uint8_t *p_desc;
 
     j = 0;
-    printf("\nurosv itag = ");
     while ( (p_desc = descs_get_desc( pmt_get_descs( p_pmt ), j )) != NULL )
     {
         uint8_t i_tag = desc_get_tag( p_desc );
         j++;
 
-        printf("%d, ", i_tag);
         if ( i_tag == 0x9 ) return true;
     }
-    printf("itag end\n");
 
     i = 0;
-    printf("urosv itag2 = ");
     while ( (p_es = pmt_get_es( p_pmt, i )) != NULL )
     {
         i++;
@@ -155,11 +154,9 @@ static bool PMTNeedsDescrambling( uint8_t *p_pmt )
         {
             uint8_t i_tag = desc_get_tag( p_desc );
             j++;
-            printf("%d, ", i_tag);
             if ( i_tag == 0x9 ) return true;
         }
     }
-    printf("itag2 end returning false\n\n");
     return false;
 }
 
@@ -223,11 +220,15 @@ char *demux_Iconv(void *_unused, const char *psz_encoding,
 }
 
 /*
- * demux_ResendCAPMTs: taken from DVBLAST 2.0. demux.c source code TODO Is this reference enough?
+ * demux_ResendCAPMTs: taken from DVBLAST 2.0. demux.c source code
  */
 void demux_ResendCAPMTs( void )
 {
-  /*[urosv] TODO: PMT error and PMT change management handling is not done yet. The code belov was handling this in DVBLAST but the structures used are empty in tvheadend, since tvh has its own*/
+  /*[urosv] TODO: PMT error and PMT change management handling is not done yet.
+   * The code sninpet below was handling this in DVBLAST but tvheadend has different structures,
+   * so it has to be reworked to be used.
+   *
+   * Tests done so far work ok, so this function might not have to be used.*/
   ;
     /*int i;
     for ( i = 0; i < i_nb_sids; i++ )
@@ -242,7 +243,7 @@ void demux_ResendCAPMTs( void )
  */
 void dvb_adapter_ca_init(void *aux)
 {
-  printf("uros dvb_adapter_ca_init start....\n");
+  tvhlog(LOG_INFO, "dvb", "CA control thread started...\n");
   th_dvb_adapter_t *tda = aux;
   pthread_t ptid;
   pthread_create(&ptid, NULL, dvb_ca_control, tda);
@@ -300,7 +301,6 @@ void * dvb_ca_control(void *aux)
 		{
        if(pthread_mutex_lock(&tda->adapter_access_ca) == 0)
        {
-         //printf("ca>"); // TODO uros remove
          /*Check if there are any pending PMT commands to sent to CA device and send them.*/
          process_pending_PMTs();
 
@@ -314,18 +314,17 @@ void * dvb_ca_control(void *aux)
              en50221_Poll();
              i_ca_next_event = i_wallclock + CA_POLL_PERIOD;
          }
-         //printf("<ca\n"); // TODO uros remove
 
          /*Check if there are any pending PMT commands to sent to CA device and send them.*/
          process_pending_PMTs();
          pthread_mutex_unlock(&tda->adapter_access_ca);
        }
-		}
+	}
 
-		// TODO [urosv] en50221_Reset() should be called on certain tvh events like FE reset/retune, DVR out of stream...
-  } // end while(1)
+	/* TODO [urosv] en50221_Reset() should be called on certain tvh events like FE reset/retune, DVR out of stream...*/
+  } /* end while(1)*/
 
-  // TODO [urosv] Proper thread exit should be implemented
+  /* TODO [urosv] Proper thread exit should be implemented */
   return NULL;
 }
 
@@ -373,18 +372,12 @@ int process_pending_PMTs(void)
       case (int)eacPMTundefined:
         break;
       case (int)eacPMTadd:
-        printf("uros en50221_AddPMT start\n");
-        tvhlog(LOG_DEBUG, "dvb", "Calling en50221_AddPMT ...\n");
+        tvhlog(LOG_INFO, "dvb", "Scrambled channel start: sending addPMT to CA device...\n");
         en50221_AddPMT( pmtcmd->p_pmt_buffer );
-        tvhlog(LOG_DEBUG, "dvb", "en50221_AddPMT ended.\n");
-        printf("uros en50221_AddPMT end\n");
         break;
       case (int)eacPMTdelete:
-        printf("uros en50221_DeletePMT start\n");
-        tvhlog(LOG_DEBUG, "dvb", "Calling en50221_DeletePMT ...\n");
+        tvhlog(LOG_INFO, "dvb", "Scrambled channel stop: sending deletePMT to CA device...\n");
         en50221_DeletePMT( pmtcmd->p_pmt_buffer );
-        tvhlog(LOG_DEBUG, "dvb", "en50221_DeletePMT ended.\n");
-        printf("uros en50221_DeletePMT end\n");
         break;
     }
 
@@ -450,11 +443,11 @@ ca_descrambler_dummydescramble(struct th_descrambler *td, struct service *s, str
 	const mtime_t alloweddelay = 5000000; // usec
 	if (td->time_of_first_descramble_call == 0) {
 		td->time_of_first_descramble_call = currenttime;
-		tvhlog(LOG_INFO,"dvb","Dummy descrambler started at %dmsec\n", (int)(currenttime/1000));
+		tvhlog(LOG_DEBUG,"dvb","Dummy descrambler started at %dmsec\n", (int)(currenttime/1000));
 	} else if (td->time_of_first_descramble_call + alloweddelay < currenttime) {
 		/* Dummy descrambler should kill itself */
 		ca_descrambler_stop(td);
-		tvhlog(LOG_INFO,"dvb","Dummy descrambler stopped at %dmsec\n", (int)(currenttime/1000));
+		tvhlog(LOG_DEBUG,"dvb","Dummy descrambler stopped at %dmsec\n", (int)(currenttime/1000));
 	}
 
 	/* Update the descrambling flag according to live stream */
@@ -475,7 +468,9 @@ bool start_transport_descrambling(struct service *s)
   memset(p_pmt, 0xff, MAX_PMTCMD_BUF_SIZE);
   psi_build_pmt_fordescrambling(s, p_pmt, MAX_PMTCMD_BUF_SIZE);
 
-  urosvprintPMT(p_pmt); /*[urosv] debug only: TODO remove this*/
+#ifdef PRINTPMT
+  printPMT(p_pmt);
+#endif
 
   if (PMTNeedsDescrambling(p_pmt) )
   {
@@ -497,10 +492,13 @@ bool start_transport_descrambling(struct service *s)
       LIST_INSERT_HEAD(&s->s_descramblers, td, td_service_link);
 
       ret = add_delete_update_PMT_delayed(p_pmt, eacPMTadd);
-    } else { printf("uros no compatible descrambling system caids!\n"); }
+    } else {
+      tvhlog(LOG_DEBUG,"dvb","Inserted CAM card does not support this channel's system caids!\n");
+    }
 
   } else {
-    ;//ret = add_delete_update_PMT_delayed(p_pmt, eacPMTstop);
+    ;/* [urosv] stop PMT is not needed
+    ret = add_delete_update_PMT_delayed(p_pmt, eacPMTstop);*/
   }
   return ret;
 }
