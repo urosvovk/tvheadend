@@ -46,6 +46,12 @@ skip_bits(bitstream_t *bs, int num)
   bs->offset += num;
 }
 
+int
+bs_eof(const bitstream_t *bs)
+{
+  return bs->offset >= bs->len;
+}
+
 unsigned int
 read_bits(bitstream_t *bs, int num)
 {
@@ -76,17 +82,8 @@ read_golomb_ue(bitstream_t *bs)
 {
   int b, lzb = -1;
 
-  for(b = 0; !b; lzb++)
-  {
+  for(b = 0; !b && !bs_eof(bs); lzb++)
     b = read_bits1(bs);
-    /*[urosv] Added end condition to terminate for loop if bitstream_t structure is corrupted
-     * this is just an indication, the tvh crash usually follows*/
-    if (lzb > 10000 || lzb > bs->len)
- 	{
-    	printf("Read_golomb_ue endless loop detected and skipped - bitstream_t corrupted(offset:%d >= len:%d)\n", bs->offset, bs->len);
-    	break;
-   	}
-  }
 
   return (1 << lzb) - 1 + read_bits(bs, lzb);
 }

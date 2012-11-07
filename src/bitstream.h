@@ -1,6 +1,6 @@
 /*
  *  Bit stream reader
- *  Copyright (C) 2007 Andreas Öman
+ *  Copyright (C) 2007 Andreas ï¿½man
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -43,5 +43,7 @@ signed int read_golomb_se(bitstream_t *gb);
 unsigned int remaining_bits(bitstream_t *gb);
 
 void put_bits(bitstream_t *bs, int val, int num);
+
+int bs_eof(const bitstream_t *bs);
 
 #endif /* BITSTREAM_H_ */
