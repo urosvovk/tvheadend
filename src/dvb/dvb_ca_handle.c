@@ -243,7 +243,7 @@ void demux_ResendCAPMTs( void )
  */
 void dvb_adapter_ca_init(void *aux)
 {
-  tvhlog(LOG_INFO, "dvb", "CA control thread started...\n");
+  tvhlog(LOG_INFO, "dvb", "CA control thread started...");
   th_dvb_adapter_t *tda = aux;
   pthread_t ptid;
   pthread_create(&ptid, NULL, dvb_ca_control, tda);
@@ -265,7 +265,7 @@ void * dvb_ca_control(void *aux)
   pthread_mutex_unlock(&pmtcmd_pending_que_mutex);
 
 
-  tvhlog(LOG_DEBUG, "dvb", "dvb_ca_control: calling en50221_Init\n");
+  tvhlog(LOG_DEBUG, "dvb", "dvb_ca_control: calling en50221_Init");
   i_adapter = tda->tda_adapter_num; /* The only input for en50221_Init function*/
   en50221_Init();
 
@@ -372,11 +372,11 @@ int process_pending_PMTs(void)
       case (int)eacPMTundefined:
         break;
       case (int)eacPMTadd:
-        tvhlog(LOG_INFO, "dvb", "Scrambled channel start: sending addPMT to CA device...\n");
+        tvhlog(LOG_INFO, "dvb", "Scrambled channel start: sending addPMT to CA device...");
         en50221_AddPMT( pmtcmd->p_pmt_buffer );
         break;
       case (int)eacPMTdelete:
-        tvhlog(LOG_INFO, "dvb", "Scrambled channel stop: sending deletePMT to CA device...\n");
+        tvhlog(LOG_INFO, "dvb", "Scrambled channel stop: sending deletePMT to CA device...");
         en50221_DeletePMT( pmtcmd->p_pmt_buffer );
         break;
     }
@@ -443,11 +443,11 @@ ca_descrambler_dummydescramble(struct th_descrambler *td, struct service *s, str
 	const mtime_t alloweddelay = 5000000; // usec
 	if (td->time_of_first_descramble_call == 0) {
 		td->time_of_first_descramble_call = currenttime;
-		tvhlog(LOG_DEBUG,"dvb","Dummy descrambler started at %dmsec\n", (int)(currenttime/1000));
+		tvhlog(LOG_DEBUG,"dvb","Dummy descrambler started at %dmsec", (int)(currenttime/1000));
 	} else if (td->time_of_first_descramble_call + alloweddelay < currenttime) {
 		/* Dummy descrambler should kill itself */
 		ca_descrambler_stop(td);
-		tvhlog(LOG_DEBUG,"dvb","Dummy descrambler stopped at %dmsec\n", (int)(currenttime/1000));
+		tvhlog(LOG_DEBUG,"dvb","Dummy descrambler stopped at %dmsec", (int)(currenttime/1000));
 	}
 
 	/* Update the descrambling flag according to live stream */
@@ -493,7 +493,7 @@ bool start_transport_descrambling(struct service *s)
 
       ret = add_delete_update_PMT_delayed(p_pmt, eacPMTadd);
     } else {
-      tvhlog(LOG_DEBUG,"dvb","Inserted CAM card does not support this channel's system caids!\n");
+      tvhlog(LOG_DEBUG,"dvb","Inserted CAM card does not support this channel's system caids!");
     }
 
   } else {

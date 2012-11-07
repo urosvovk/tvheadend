@@ -71,7 +71,7 @@
  * Local declarations
  *****************************************************************************/
 #undef DEBUG_TPDU
-#define DEBUG_TPDU
+/*#define DEBUG_TPDU*/
 #define CAM_INIT_TIMEOUT 15000000 /* 15 s */
 #undef HLCI_WAIT_CAM_READY
 #define CAPMT_WAIT 100 /* ms */
@@ -1037,11 +1037,11 @@ static void ApplicationInformationHandle( access_t * p_access, int i_session_id,
             {
             case PRINT_XML:
                 psz_name = dvb_string_xml_escape(psz_name);
-                printf("<STATUS type=\"cam\" status=\"1\" cam_name=\"%s\" cam_type=\"%d\" cam_manufacturer=\"%d\" cam_product=\"%d\" />\n",
+                msg_Info(NULL, "<STATUS type=\"cam\" status=\"1\" cam_name=\"%s\" cam_type=\"%d\" cam_manufacturer=\"%d\" cam_product=\"%d\" />",
                        psz_name, i_type, i_manufacturer, i_code);
                 break;
             default:
-                printf("CAM: name=%s type=%d manufacturer=%d product=%d\n",
+            	msg_Info(NULL, "CAM: name=%s type=%d manufacturer=%d product=%d",
                        psz_name, i_type, i_manufacturer, i_code);
             }
             free(psz_name);
@@ -1880,7 +1880,7 @@ static void ResetSlot( int i_slot )
     switch (i_print_type)
     {
     case PRINT_XML:
-        printf("<STATUS type=\"cam\" status=\"0\" />\n");
+    	msg_Info(NULL, "<STATUS type=\"cam\" status=\"0\" />");
         break;
     default:
         break;

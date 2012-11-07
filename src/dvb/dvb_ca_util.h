@@ -19,7 +19,7 @@
 
 #define MAX_PIDS 8192
 
-#define DEFAULT_VERBOSITY 4
+#define DEFAULT_VERBOSITY 3
 #define VERB_DBG  4
 #define VERB_INFO 3
 #define VERB_WARN 2
